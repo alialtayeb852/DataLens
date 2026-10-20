@@ -8,7 +8,12 @@
 <body>
 <section class="shell">
 <aside class="sidebar">
-<div class="brand"><span class="logo">DL</span><div><b>DataLens</b><small>Analytics Platform</small></div></div>
+<div class="brand">
+  <span class="logo">DL</span>
+  <div>
+    <b>DataLens</b><small>Analytics Platform</small>
+  </div>
+</div>
 <nav><a class="active" href="overview.html">نظرة عامة</a>
 <a class="" href="profile.html">توصيف البيانات</a>
 <a class="" href="quality.html">جودة البيانات</a>
@@ -24,9 +29,35 @@
 <a class="danger ghost" href="login.html">تسجيل الخروج</a>
 </aside>
 <main class="main">
-<header><div><strong>نظرة عامة</strong><small>DataLens Analysis</small></div><div class="header-actions"><a class="ghost" href="login.html">الحساب</a></div></header>
-<div class="content"><div class="card"><h2>ابدأ تحليل بياناتك</h2><p class="muted">ارفع مجموعة البيانات لبدء التحليل.</p><label class="upload-mini">رفع ملف<input type="file" accept=".csv,.json"></label></div><div class="grid"><div class="card"><b>السجلات</b><h2>—</h2></div><div class="card"><b>الأعمدة</b><h2>—</h2></div><div class="card"><b>جودة البيانات</b><h2>—</h2></div></div></div>
+<header>
+  <div>
+    <strong>نظرة عامة</strong><small>DataLens Analysis</small>
+  </div>
+  <div class="header-actions">
+    <a class="ghost" href="login.html">الحساب</a>
+  </div>
+</header>
+<div class="content">
+  <div class="card">
+    <h2>ابدأ تحليل بياناتك</h2>
+    <p class="muted">ارفع مجموعة البيانات لبدء التحليل.</p>
+    <label class="upload-mini">رفع ملف <input type="file" accept=".csv,.json,.xlsx,.xls"> </label>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <b>السجلات</b><h2>—</h2>
+    </div>
+    <div class="card">
+      <b>الأعمدة</b><h2>—</h2>
+    </div>
+    <div class="card">
+      <b>جودة البيانات</b><h2>—</h2>
+    </div>
+  </div>
+</div>
 </main>
 </section>
-<script src="js/script.js"></script>
-</body></html>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/script.js"></script> 
+</body>
+</html>
