@@ -2072,6 +2072,10 @@ function buildReportPaper(
   const generatedAt=
     new Date().toLocaleString('ar');
 
+  /* ============================================================
+     الإحصاءات الوصفية
+     ============================================================ */
+
   const numericSummary=
     num.length?
       `
@@ -2108,9 +2112,132 @@ function buildReportPaper(
       `;
 
 
+  /* ============================================================
+     مصفوفة الارتباط
+     ============================================================ */
+
+  const correlationKeys=
+    keys.filter(
+      k=>nums(rows,k).length>1
+    );
+
+
+  let correlationSummary='';
+
+
+  if(correlationKeys.length>=2){
+
+    const correlationRows=
+      correlationKeys.map(a=>{
+
+        return `
+          <tr>
+
+            <th>
+              ${esc(a)}
+            </th>
+
+            ${correlationKeys.map(b=>{
+
+              const value=
+                corrRows(
+                  rows,
+                  a,
+                  b
+                );
+
+              return `
+                <td>
+                  ${value.toFixed(3)}
+                </td>
+              `;
+
+            }).join('')}
+
+          </tr>
+        `;
+
+      }).join('');
+
+
+    const correlationHeaders=
+      correlationKeys.map(k=>`
+        <th>
+          ${esc(k)}
+        </th>
+      `).join('');
+
+
+    correlationSummary=`
+      <div class="report-section report-correlation-section">
+
+        <h3>
+          مصفوفة الارتباط
+        </h3>
+
+        <p class="report-correlation-note">
+          تم حساب معاملات ارتباط بيرسون بين المتغيرات الرقمية.
+          تتراوح قيمة معامل الارتباط بين -1 و +1.
+        </p>
+
+        <div class="report-correlation-scroll">
+
+          <table class="report-correlation-table">
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  المتغير
+                </th>
+
+                ${correlationHeaders}
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              ${correlationRows}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+    `;
+
+  }else{
+
+    correlationSummary=`
+      <div class="report-section report-correlation-section">
+
+        <h3>
+          مصفوفة الارتباط
+        </h3>
+
+        <p>
+          لا توجد متغيرات رقمية كافية لحساب مصفوفة الارتباط.
+        </p>
+
+      </div>
+    `;
+  }
+
+
+  /* ============================================================
+     التقرير الكامل
+     ============================================================ */
+
   return `
 
     <div class="report-paper">
+
+      <!-- رأس التقرير -->
 
       <div class="report-paper-header">
 
@@ -2132,6 +2259,8 @@ function buildReportPaper(
 
       </div>
 
+
+      <!-- معلومات التقرير -->
 
       <div class="report-meta">
 
@@ -2189,6 +2318,8 @@ function buildReportPaper(
       </div>
 
 
+      <!-- ملخص البيانات -->
+
       <div class="report-section">
 
         <h3>
@@ -2196,24 +2327,46 @@ function buildReportPaper(
         </h3>
 
         <p>
+
           يحتوي ملف البيانات على
-          <b>${rows.length}</b>
+
+          <b>
+            ${rows.length}
+          </b>
+
           سجل و
-          <b>${keys.length}</b>
+
+          <b>
+            ${keys.length}
+          </b>
+
           عمود.
+
         </p>
 
+
         <p>
+
           نوع الملف:
-          <b>${esc(ds.type||'غير محدد')}</b>
+
+          <b>
+            ${esc(ds.type||'غير محدد')}
+          </b>
+
         </p>
+
 
         ${
           ds.sheetName?
           `
             <p>
+
               ورقة Excel المستخدمة:
-              <b>${esc(ds.sheetName)}</b>
+
+              <b>
+                ${esc(ds.sheetName)}
+              </b>
+
             </p>
           `:
           ''
@@ -2222,11 +2375,14 @@ function buildReportPaper(
       </div>
 
 
+      <!-- جودة البيانات -->
+
       <div class="report-section">
 
         <h3>
           جودة البيانات
         </h3>
+
 
         <div class="report-quality-grid">
 
@@ -2286,6 +2442,8 @@ function buildReportPaper(
       </div>
 
 
+      <!-- الإحصاءات -->
+
       <div class="report-section">
 
         <h3>
@@ -2297,6 +2455,13 @@ function buildReportPaper(
       </div>
 
 
+      <!-- مصفوفة الارتباط -->
+
+      ${correlationSummary}
+
+
+      <!-- ملاحظات التحليل -->
+
       <div class="report-section">
 
         <h3>
@@ -2304,22 +2469,37 @@ function buildReportPaper(
         </h3>
 
         <p>
+
           تم حساب الإحصاءات الوصفية للمتغيرات الرقمية
           المتاحة في مجموعة البيانات.
+
         </p>
 
         <p>
+
           تشمل المؤشرات المستخدمة المتوسط والوسيط
           والانحراف المعياري والقيم الدنيا والعليا.
+
         </p>
 
         <p>
+
+          تم حساب مصفوفة الارتباط باستخدام
+          معامل ارتباط بيرسون للمتغيرات الرقمية.
+
+        </p>
+
+        <p>
+
           درجة جودة البيانات هي درجة تقديرية مبنية على
           القيم المفقودة والتكرارات والقيم الشاذة.
+
         </p>
 
       </div>
 
+
+      <!-- التذييل -->
 
       <div class="report-footer">
 
@@ -2335,7 +2515,6 @@ function buildReportPaper(
 
   `;
 }
-
 
 /* ============================================================
    فتح معاينة التقرير
