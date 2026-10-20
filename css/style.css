@@ -1805,3 +1805,30 @@ body.report-printing .report-preview-overlay{
   }
 
 }
+
+/* ============================================================
+   DATALENS — ANALYTICS PLATFORM COLOR
+   نفس لون كلمة DataLens
+   ============================================================ */
+
+/* تسجيل الدخول + إنشاء الحساب */
+.auth-visual .brand small{
+  display:block;
+  color:inherit;
+  margin-top:4px;
+  font-size:14px;
+  line-height:1.3;
+  opacity:1;
+  position:relative;
+  z-index:1;
+}
+
+/* القائمة الجانبية في جميع الصفحات */
+.sidebar .brand small{
+  display:block;
+  color:inherit;
+  margin-top:4px;
+  font-size:13px;
+  line-height:1.3;
+  opacity:1;
+     }
