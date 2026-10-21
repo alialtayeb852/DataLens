@@ -6,7 +6,8 @@ const K={
   session:'dl_session_v3',
   datasets:'dl_datasets_v3',
   active:'dl_active_v3',
-  messages:'dl_messages_v3'
+  messages:'dl_messages_v3',
+  chart:'dl_chart_v3'
 };
 
 const appPages=[
@@ -1295,7 +1296,7 @@ function render(){
     page()==='visualization.html'&&
     rows.length
   )
-    renderViz(rows);
+    renderViz(rows,ds);
 
   if(
     page()==='insights.html'&&
@@ -1539,8 +1540,7 @@ function renderCleaning(ds){
    Visualization
    ============================================================ */
 
-
-  function renderViz(rows){
+function renderViz(rows,ds){
 
   let sels=$$('select');
 
@@ -1571,12 +1571,6 @@ function renderCleaning(ds){
     const isScatter=
       chartType.includes('scatter');
 
-    /*
-      في Scatter يجب أن يكون
-      المحور X رقمياً.
-      أما بقية الرسومات فيمكن
-      أن يكون X نصياً أو رقمياً.
-    */
     const xKeys=
       isScatter?
       numeric:
@@ -1598,10 +1592,6 @@ function renderCleaning(ds){
         )
         .join('');
 
-    /*
-      نحافظ على الاختيار السابق
-      إذا كان ما زال صالحاً.
-    */
     if(xKeys.includes(oldX)){
       sx.value=oldX;
     }
@@ -1632,10 +1622,6 @@ function renderCleaning(ds){
     return;
   }
 
-  /*
-    يمنع إضافة أكثر من Canvas
-    في حالة إعادة تشغيل render.
-  */
   const oldCanvas=
     $('.chart-canvas',card);
 
@@ -1646,7 +1632,7 @@ function renderCleaning(ds){
   card.appendChild(canvas);
 
   const drawBtn=
-    $('.primary');
+    $('.primary',card);
 
   if(!drawBtn){
     return;
@@ -1659,19 +1645,98 @@ function renderCleaning(ds){
       rows,
       type.value,
       sx.value,
-      sy.value
+      sy.value,
+      ds?.id||null
     );
 
   };
 }
 
 
+/* ============================================================
+   حفظ الرسم البياني للتقرير
+   ============================================================ */
+
+function saveChartForReport(
+  canvas,
+  type,
+  xk,
+  yk,
+  datasetId
+){
+
+  if(!canvas){
+    return false;
+  }
+
+  try{
+
+    const image=
+      canvas.toDataURL(
+        'image/png'
+      );
+
+    if(
+      !image||
+      image==='data:,'
+    ){
+      return false;
+    }
+
+    write(
+      K.chart,
+      {
+        datasetId:datasetId||null,
+        type:String(type||''),
+        x:xk||'',
+        y:yk||'',
+        image,
+        createdAt:new Date().toISOString()
+      }
+    );
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      'DataLens chart save error:',
+      error
+    );
+
+    return false;
+  }
+}
+
+
+/* ============================================================
+   حذف الرسم المحفوظ
+   ============================================================ */
+
+function clearSavedChart(){
+
+  try{
+    localStorage.removeItem(K.chart);
+  }catch(error){
+    console.error(
+      'DataLens chart clear error:',
+      error
+    );
+  }
+}
+
+
+/* ============================================================
+   Draw
+   ============================================================ */
+
 function draw(
   cv,
   rows,
   type,
   xk,
-  yk
+  yk,
+  datasetId
 ){
 
   if(!xk){
@@ -1779,11 +1844,6 @@ function draw(
     let maxY=
       Math.max(...ys);
 
-
-    /*
-      إذا كانت كل قيم X متساوية
-      نوسّع النطاق حتى يمكن الرسم.
-    */
     if(minX===maxX){
 
       let pad=
@@ -1794,10 +1854,6 @@ function draw(
 
     }
 
-
-    /*
-      نفس المعالجة للمحور Y.
-    */
     if(minY===maxY){
 
       let pad=
@@ -1807,7 +1863,6 @@ function draw(
       maxY+=pad;
 
     }
-
 
     const left=70;
     const right=25;
@@ -1820,11 +1875,6 @@ function draw(
     const plotHeight=
       bottom-top;
 
-
-    /*
-      تحويل قيمة X إلى إحداثي
-      داخل Canvas.
-    */
     const scaleX=value=>
       left+
       (
@@ -1833,11 +1883,6 @@ function draw(
       )*
       plotWidth;
 
-
-    /*
-      تحويل قيمة Y إلى إحداثي
-      داخل Canvas.
-    */
     const scaleY=value=>
       bottom-
       (
@@ -1845,9 +1890,6 @@ function draw(
         (maxY-minY)
       )*
       plotHeight;
-
-
-    /* خطوط الشبكة */
 
     ctx.strokeStyle='#e2e6e8';
     ctx.lineWidth=1;
@@ -1865,9 +1907,6 @@ function draw(
 
       let ratio=
         i/ticks;
-
-
-      /* خطوط Y */
 
       let py=
         bottom-
@@ -1898,9 +1937,6 @@ function draw(
         8,
         py+4
       );
-
-
-      /* خطوط X */
 
       let px=
         left+
@@ -1934,9 +1970,6 @@ function draw(
 
     }
 
-
-    /* المحاور */
-
     ctx.strokeStyle='#9aa8b1';
     ctx.lineWidth=1.5;
 
@@ -1958,9 +1991,6 @@ function draw(
     );
 
     ctx.stroke();
-
-
-    /* نقاط Scatter */
 
     ctx.fillStyle='#6B6240';
 
@@ -1992,9 +2022,6 @@ function draw(
       }
     );
 
-
-    /* عنوان الرسم */
-
     ctx.fillStyle='#233b4b';
     ctx.font='16px serif';
 
@@ -2004,19 +2031,35 @@ function draw(
       350
     );
 
+    const saved=
+      saveChartForReport(
+        cv,
+        type,
+        xk,
+        yk,
+        datasetId
+      );
+
+    if(saved){
+
+      toast(
+        'تم إنشاء الرسم وحفظه للتقرير'
+      );
+
+    }
+
     return;
   }
 
 
   /* ============================================================
      BAR / LINE / PIE
-     نحافظ على السلوك السابق كما هو
      ============================================================ */
 
   let data;
 
   if(
-    type==='Pie'||
+    chartType==='pie'||
     !yk
   ){
 
@@ -2110,7 +2153,7 @@ function draw(
         i*w+
         3;
 
-      if(type==='Line'){
+      if(chartType==='line'){
 
         if(i===0){
 
@@ -2162,12 +2205,29 @@ function draw(
     left,
     345
   );
+
+  const saved=
+    saveChartForReport(
+      cv,
+      type,
+      xk,
+      yk,
+      datasetId
+    );
+
+  if(saved){
+
+    toast(
+      'تم إنشاء الرسم وحفظه للتقرير'
+    );
+
+  }
 }
 
 
 /* ============================================================
-تنسيق أرقام محاور Scatter Plot
-============================================================ */
+   تنسيق أرقام محاور Scatter Plot
+   ============================================================ */
 
 function formatAxisNumber(value){
 
@@ -2201,7 +2261,8 @@ function formatAxisNumber(value){
   return Number(
     value.toFixed(2)
   ).toString();
-  }
+}
+
 
 /* ============================================================
    Insights
@@ -2508,6 +2569,122 @@ function buildReportPaper(
 
   const generatedAt=
     new Date().toLocaleString('ar');
+
+
+  /* ============================================================
+     الرسم البياني المحفوظ
+     ============================================================ */
+
+  const savedChart=
+    read(
+      K.chart,
+      null
+    );
+
+  let chartSummary='';
+
+
+  if(
+    savedChart&&
+    savedChart.image&&
+    (
+      !savedChart.datasetId||
+      savedChart.datasetId===ds.id
+    )
+  ){
+
+    const chartType=
+      esc(
+        savedChart.type||
+        'غير محدد'
+      );
+
+    const chartX=
+      esc(
+        savedChart.x||
+        ''
+      );
+
+    const chartY=
+      esc(
+        savedChart.y||
+        ''
+      );
+
+    chartSummary=`
+
+      <div class="report-section report-chart-section">
+
+        <h3>
+          التصور البياني
+        </h3>
+
+        <div class="report-chart-info">
+
+          <span>
+            نوع الرسم:
+            <b>${chartType}</b>
+          </span>
+
+          ${
+            chartX?
+            `
+              <span>
+                المحور X:
+                <b>${chartX}</b>
+              </span>
+            `:
+            ''
+          }
+
+          ${
+            chartY?
+            `
+              <span>
+                المحور Y:
+                <b>${chartY}</b>
+              </span>
+            `:
+            ''
+          }
+
+        </div>
+
+        <div class="report-chart-image-wrap">
+
+          <img
+            class="report-chart-image"
+            src="${savedChart.image}"
+            alt="الرسم البياني"
+          >
+
+        </div>
+
+      </div>
+
+    `;
+
+  }else{
+
+    chartSummary=`
+
+      <div class="report-section report-chart-section">
+
+        <h3>
+          التصور البياني
+        </h3>
+
+        <p>
+          لم يتم إنشاء رسم بياني لهذا الملف بعد.
+          انتقل إلى صفحة التصور البياني وأنشئ الرسم أولاً،
+          ثم عد إلى التقرير.
+        </p>
+
+      </div>
+
+    `;
+  }
+
 
   /* ============================================================
      الإحصاءات الوصفية
@@ -2892,6 +3069,11 @@ function buildReportPaper(
       </div>
 
 
+      <!-- الرسم البياني -->
+
+      ${chartSummary}
+
+
       <!-- مصفوفة الارتباط -->
 
       ${correlationSummary}
@@ -2952,6 +3134,7 @@ function buildReportPaper(
 
   `;
 }
+
 
 /* ============================================================
    فتح معاينة التقرير
@@ -3136,12 +3319,6 @@ function printReport(){
   document.body.classList.add(
     'report-printing'
   );
-
-  /*
-    نعطي المتصفح لحظة لتطبيق
-    CSS الخاص بالطباعة قبل فتح
-    نافذة الطباعة.
-  */
 
   setTimeout(()=>{
 
