@@ -1787,6 +1787,298 @@ function draw(
 
 
   /* ============================================================
+     PIE CHART
+     ============================================================ */
+
+  if(chartType==='pie'){
+
+    let frequency={};
+
+    rows.forEach(r=>{
+
+      let value=
+        String(
+          r[xk]??''
+        ).trim();
+
+      if(value){
+        frequency[value]=
+          (frequency[value]||0)+1;
+      }
+
+    });
+
+    let pieData=
+      Object.entries(frequency)
+        .sort(
+          (a,b)=>b[1]-a[1]
+        );
+
+    if(!pieData.length){
+
+      return toast(
+        'لا توجد بيانات صالحة للرسم الدائري',
+        false
+      );
+
+    }
+
+    const maxCategories=8;
+
+    if(pieData.length>maxCategories){
+
+      const main=
+        pieData.slice(
+          0,
+          maxCategories-1
+        );
+
+      const other=
+        pieData
+          .slice(maxCategories-1)
+          .reduce(
+            (sum,item)=>
+              sum+Number(item[1]),
+            0
+          );
+
+      main.push([
+        'أخرى',
+        other
+      ]);
+
+      pieData=main;
+    }
+
+    const total=
+      pieData.reduce(
+        (sum,item)=>
+          sum+Number(item[1]),
+        0
+      );
+
+    if(!total){
+
+      return toast(
+        'لا توجد بيانات صالحة للرسم الدائري',
+        false
+      );
+
+    }
+
+    const centerX=285;
+    const centerY=175;
+    const radius=125;
+
+    const pieColors=[
+      '#53758a',
+      '#6B6240',
+      '#8B5E5E',
+      '#557C55',
+      '#6C6A8F',
+      '#9A7352',
+      '#4F7D7A',
+      '#7B6874'
+    ];
+
+    let startAngle=
+      -Math.PI/2;
+
+    pieData.forEach(
+      (item,index)=>{
+
+        const value=
+          Number(item[1])||0;
+
+        const sliceAngle=
+          (value/total)*
+          Math.PI*2;
+
+        const endAngle=
+          startAngle+
+          sliceAngle;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+          centerX,
+          centerY
+        );
+
+        ctx.arc(
+          centerX,
+          centerY,
+          radius,
+          startAngle,
+          endAngle
+        );
+
+        ctx.closePath();
+
+        ctx.fillStyle=
+          pieColors[
+            index%pieColors.length
+          ];
+
+        ctx.fill();
+
+        ctx.strokeStyle='#ffffff';
+        ctx.lineWidth=2;
+
+        ctx.stroke();
+
+
+        const middleAngle=
+          startAngle+
+          sliceAngle/2;
+
+        const labelRadius=
+          radius*0.64;
+
+        const labelX=
+          centerX+
+          Math.cos(middleAngle)*
+          labelRadius;
+
+        const labelY=
+          centerY+
+          Math.sin(middleAngle)*
+          labelRadius;
+
+        const percentage=
+          (value/total)*100;
+
+
+        if(percentage>=5){
+
+          ctx.fillStyle='#ffffff';
+
+          ctx.font=
+            'bold 13px serif';
+
+          ctx.textAlign='center';
+
+          ctx.textBaseline='middle';
+
+          ctx.fillText(
+            percentage.toFixed(1)+'%',
+            labelX,
+            labelY
+          );
+
+        }
+
+        startAngle=endAngle;
+
+      }
+    );
+
+
+    ctx.textAlign='center';
+
+    ctx.textBaseline='alphabetic';
+
+    ctx.fillStyle='#233b4b';
+
+    ctx.font=
+      'bold 17px serif';
+
+    ctx.fillText(
+      'توزيع '+xk,
+      centerX,
+      25
+    );
+
+
+    const legendX=500;
+
+    let legendY=65;
+
+    ctx.font=
+      '13px serif';
+
+    ctx.textAlign='left';
+
+    pieData.forEach(
+      (item,index)=>{
+
+        const value=
+          Number(item[1])||0;
+
+        const percentage=
+          (value/total)*100;
+
+        ctx.fillStyle=
+          pieColors[
+            index%pieColors.length
+          ];
+
+        ctx.fillRect(
+          legendX,
+          legendY-12,
+          16,
+          16
+        );
+
+        ctx.fillStyle='#233b4b';
+
+        ctx.fillText(
+          String(item[0])+
+          ' — '+
+          percentage.toFixed(1)+
+          '%',
+          legendX+25,
+          legendY
+        );
+
+        legendY+=28;
+
+      }
+    );
+
+
+    ctx.fillStyle='#66757f';
+
+    ctx.font=
+      '12px serif';
+
+    ctx.textAlign='left';
+
+    ctx.fillText(
+      'عدد الفئات: '+pieData.length,
+      legendX,
+      315
+    );
+
+    ctx.fillText(
+      'إجمالي القيم: '+total,
+      legendX,
+      335
+    );
+
+
+    const saved=
+      saveChartForReport(
+        cv,
+        type,
+        xk,
+        '',
+        datasetId
+      );
+
+    if(saved){
+
+      toast(
+        'تم إنشاء الرسم الدائري وحفظه للتقرير'
+      );
+
+    }
+
+    return;
+  }
+
+
+  /* ============================================================
      SCATTER PLOT
      ============================================================ */
 
@@ -2053,16 +2345,12 @@ function draw(
 
 
   /* ============================================================
-     BAR / LINE / PIE
+     BAR / LINE
      ============================================================ */
-  /* ============================================================*/
 
   let data;
 
-  if(
-    chartType==='pie'||
-    !yk
-  ){
+  if(!yk){
 
     let f={};
 
