@@ -1539,13 +1539,18 @@ function renderCleaning(ds){
    Visualization
    ============================================================ */
 
-function renderViz(rows){
+
+  function renderViz(rows){
 
   let sels=$$('select');
 
   let type=sels[0];
   let sx=sels[1];
   let sy=sels[2];
+
+  if(!type||!sx||!sy){
+    return;
+  }
 
   let keys=cols(rows);
 
@@ -1554,21 +1559,64 @@ function renderViz(rows){
       k=>nums(rows,k).length
     );
 
-  sx.innerHTML=
-    '<option value="">اختر</option>'+
-    keys
-      .map(
-        k=>`<option>${esc(k)}</option>`
-      )
-      .join('');
+  function fillAxisOptions(){
 
-  sy.innerHTML=
-    '<option value="">اختر</option>'+
-    numeric
-      .map(
-        k=>`<option>${esc(k)}</option>`
-      )
-      .join('');
+    const oldX=sx.value;
+    const oldY=sy.value;
+
+    const chartType=
+      String(type.value||'')
+      .toLowerCase();
+
+    const isScatter=
+      chartType.includes('scatter');
+
+    /*
+      في Scatter يجب أن يكون
+      المحور X رقمياً.
+      أما بقية الرسومات فيمكن
+      أن يكون X نصياً أو رقمياً.
+    */
+    const xKeys=
+      isScatter?
+      numeric:
+      keys;
+
+    sx.innerHTML=
+      '<option value="">اختر</option>'+
+      xKeys
+        .map(
+          k=>`<option value="${esc(k)}">${esc(k)}</option>`
+        )
+        .join('');
+
+    sy.innerHTML=
+      '<option value="">اختر</option>'+
+      numeric
+        .map(
+          k=>`<option value="${esc(k)}">${esc(k)}</option>`
+        )
+        .join('');
+
+    /*
+      نحافظ على الاختيار السابق
+      إذا كان ما زال صالحاً.
+    */
+    if(xKeys.includes(oldX)){
+      sx.value=oldX;
+    }
+
+    if(numeric.includes(oldY)){
+      sy.value=oldY;
+    }
+  }
+
+  fillAxisOptions();
+
+  type.addEventListener(
+    'change',
+    fillAxisOptions
+  );
 
   let canvas=
     document.createElement('canvas');
@@ -1577,17 +1625,44 @@ function renderViz(rows){
   canvas.height=360;
   canvas.className='chart-canvas';
 
-  $('.content .card')
-    .appendChild(canvas);
+  const card=
+    $('.content .card');
 
-  $('.primary').onclick=
-    ()=>draw(
+  if(!card){
+    return;
+  }
+
+  /*
+    يمنع إضافة أكثر من Canvas
+    في حالة إعادة تشغيل render.
+  */
+  const oldCanvas=
+    $('.chart-canvas',card);
+
+  if(oldCanvas){
+    oldCanvas.remove();
+  }
+
+  card.appendChild(canvas);
+
+  const drawBtn=
+    $('.primary');
+
+  if(!drawBtn){
+    return;
+  }
+
+  drawBtn.onclick=()=>{
+
+    draw(
       canvas,
       rows,
       type.value,
       sx.value,
       sy.value
-    )
+    );
+
+  };
 }
 
 
@@ -1599,13 +1674,21 @@ function draw(
   yk
 ){
 
-  if(!xk)
+  if(!xk){
+
     return toast(
       'اختر المحور X',
       false
     );
 
-  let ctx=cv.getContext('2d');
+  }
+
+  let ctx=
+    cv.getContext('2d');
+
+  if(!ctx){
+    return;
+  }
 
   let W=cv.width;
   let H=cv.height;
@@ -1630,6 +1713,306 @@ function draw(
 
   ctx.font='16px serif';
 
+  const chartType=
+    String(type||'')
+    .toLowerCase();
+
+  const isScatter=
+    chartType.includes('scatter');
+
+
+  /* ============================================================
+     SCATTER PLOT
+     ============================================================ */
+
+  if(isScatter){
+
+    if(!yk){
+
+      return toast(
+        'اختر المحور Y للرسم المبعثر',
+        false
+      );
+
+    }
+
+    let data=
+      rows
+        .map(r=>[
+          Number(r[xk]),
+          Number(r[yk])
+        ])
+        .filter(
+          z=>
+            Number.isFinite(z[0])&&
+            Number.isFinite(z[1])
+        );
+
+    if(!data.length){
+
+      return toast(
+        'لا توجد بيانات رقمية صالحة للرسم المبعثر',
+        false
+      );
+
+    }
+
+    let xs=
+      data.map(
+        z=>z[0]
+      );
+
+    let ys=
+      data.map(
+        z=>z[1]
+      );
+
+    let minX=
+      Math.min(...xs);
+
+    let maxX=
+      Math.max(...xs);
+
+    let minY=
+      Math.min(...ys);
+
+    let maxY=
+      Math.max(...ys);
+
+
+    /*
+      إذا كانت كل قيم X متساوية
+      نوسّع النطاق حتى يمكن الرسم.
+    */
+    if(minX===maxX){
+
+      let pad=
+        Math.abs(minX)*0.1||1;
+
+      minX-=pad;
+      maxX+=pad;
+
+    }
+
+
+    /*
+      نفس المعالجة للمحور Y.
+    */
+    if(minY===maxY){
+
+      let pad=
+        Math.abs(minY)*0.1||1;
+
+      minY-=pad;
+      maxY+=pad;
+
+    }
+
+
+    const left=70;
+    const right=25;
+    const top=25;
+    const bottom=305;
+
+    const plotWidth=
+      W-left-right;
+
+    const plotHeight=
+      bottom-top;
+
+
+    /*
+      تحويل قيمة X إلى إحداثي
+      داخل Canvas.
+    */
+    const scaleX=value=>
+      left+
+      (
+        (value-minX)/
+        (maxX-minX)
+      )*
+      plotWidth;
+
+
+    /*
+      تحويل قيمة Y إلى إحداثي
+      داخل Canvas.
+    */
+    const scaleY=value=>
+      bottom-
+      (
+        (value-minY)/
+        (maxY-minY)
+      )*
+      plotHeight;
+
+
+    /* خطوط الشبكة */
+
+    ctx.strokeStyle='#e2e6e8';
+    ctx.lineWidth=1;
+
+    ctx.fillStyle='#66757f';
+    ctx.font='12px serif';
+
+    const ticks=5;
+
+    for(
+      let i=0;
+      i<=ticks;
+      i++
+    ){
+
+      let ratio=
+        i/ticks;
+
+
+      /* خطوط Y */
+
+      let py=
+        bottom-
+        ratio*
+        plotHeight;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        left,
+        py
+      );
+
+      ctx.lineTo(
+        W-right,
+        py
+      );
+
+      ctx.stroke();
+
+      let yValue=
+        minY+
+        ratio*
+        (maxY-minY);
+
+      ctx.fillText(
+        formatAxisNumber(yValue),
+        8,
+        py+4
+      );
+
+
+      /* خطوط X */
+
+      let px=
+        left+
+        ratio*
+        plotWidth;
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        px,
+        top
+      );
+
+      ctx.lineTo(
+        px,
+        bottom
+      );
+
+      ctx.stroke();
+
+      let xValue=
+        minX+
+        ratio*
+        (maxX-minX);
+
+      ctx.fillText(
+        formatAxisNumber(xValue),
+        px-15,
+        bottom+20
+      );
+
+    }
+
+
+    /* المحاور */
+
+    ctx.strokeStyle='#9aa8b1';
+    ctx.lineWidth=1.5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      left,
+      top
+    );
+
+    ctx.lineTo(
+      left,
+      bottom
+    );
+
+    ctx.lineTo(
+      W-right,
+      bottom
+    );
+
+    ctx.stroke();
+
+
+    /* نقاط Scatter */
+
+    ctx.fillStyle='#6B6240';
+
+    data.forEach(
+      point=>{
+
+        const x=
+          scaleX(
+            point[0]
+          );
+
+        const y=
+          scaleY(
+            point[1]
+          );
+
+        ctx.beginPath();
+
+        ctx.arc(
+          x,
+          y,
+          4,
+          0,
+          Math.PI*2
+        );
+
+        ctx.fill();
+
+      }
+    );
+
+
+    /* عنوان الرسم */
+
+    ctx.fillStyle='#233b4b';
+    ctx.font='16px serif';
+
+    ctx.fillText(
+      `${xk} × ${yk}`,
+      left,
+      350
+    );
+
+    return;
+  }
+
+
+  /* ============================================================
+     BAR / LINE / PIE
+     نحافظ على السلوك السابق كما هو
+     ============================================================ */
+
   let data;
 
   if(
@@ -1647,7 +2030,7 @@ function draw(
 
     data=
       Object.entries(f)
-        .slice(0,12)
+        .slice(0,12);
 
   }else{
 
@@ -1661,22 +2044,28 @@ function draw(
           ]
         )
         .filter(
-          z=>Number.isFinite(z[1])
-        )
+          z=>
+            Number.isFinite(z[1])
+        );
+
   }
 
-  if(!data.length)
+  if(!data.length){
+
     return toast(
       'لا توجد بيانات صالحة للرسم',
       false
     );
 
-  let max=Math.max(
-    ...data.map(
-      z=>Number(z[1])||0
-    ),
-    1
-  );
+  }
+
+  let max=
+    Math.max(
+      ...data.map(
+        z=>Number(z[1])||0
+      ),
+      1
+    );
 
   let left=55;
   let bottom=310;
@@ -1730,7 +2119,7 @@ function draw(
           ctx.moveTo(
             x,
             bottom-h
-          )
+          );
 
         }else{
 
@@ -1741,30 +2130,78 @@ function draw(
 
           ctx.strokeStyle='#24465b';
 
-          ctx.stroke()
+          ctx.stroke();
+
         }
 
       }else{
 
+        ctx.fillStyle='#53758a';
+
         ctx.fillRect(
           x,
           bottom-h,
-          Math.max(3,w-6),
+          Math.max(
+            3,
+            w-6
+          ),
           h
-        )
+        );
+
       }
+
     }
   );
 
   ctx.fillStyle='#233b4b';
 
+  ctx.font='16px serif';
+
   ctx.fillText(
     `${xk}${yk?' × '+yk:''}`,
     left,
     345
-  )
+  );
 }
 
+
+/* ============================================================
+تنسيق أرقام محاور Scatter Plot
+============================================================ */
+
+function formatAxisNumber(value){
+
+  if(!Number.isFinite(value)){
+    return '';
+  }
+
+  const abs=
+    Math.abs(value);
+
+  if(
+    abs>=1000000||
+    (
+      abs>0&&
+      abs<0.001
+    )
+  ){
+
+    return value.toExponential(1);
+
+  }
+
+  if(
+    Number.isInteger(value)
+  ){
+
+    return String(value);
+
+  }
+
+  return Number(
+    value.toFixed(2)
+  ).toString();
+  }
 
 /* ============================================================
    Insights
