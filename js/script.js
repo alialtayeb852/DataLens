@@ -3660,50 +3660,90 @@ document.addEventListener(
 
 function renderContact(){
 
-  let f=$('form');
+  let f = $('form');
 
-  if(!f)return;
+  if(!f) return;
 
-  f.onsubmit=e=>{
+  f.onsubmit = async e => {
 
     e.preventDefault();
 
-    let fields=
-      $$(
-        'input,textarea',
-        f
-      );
-
-    let m={
-      id:Date.now(),
-      name:fields[0].value.trim(),
-      email:fields[1].value.trim(),
-      subject:fields[2].value.trim(),
-      message:fields[3].value.trim(),
-      date:new Date().toISOString(),
-      user:session()?.id
-    };
-
-    let a=
-      read(
-        K.messages,
-        []
-      );
-
-    a.push(m);
-
-    write(
-      K.messages,
-      a
+    let fields = $$(
+      'input,textarea',
+      f
     );
 
-    f.reset();
+    let name = fields[0].value.trim();
+    let email = fields[1].value.trim();
+    let subject = fields[2].value.trim();
+    let message = fields[3].value.trim();
 
-    toast(
-      'تم حفظ رسالتك محلياً بنجاح'
-    )
-  }
-}
+    if(!name || !email || !subject || !message){
+      toast('يرجى ملء جميع الحقول');
+      return;
+    }
+
+    let btn = $('button[type="submit"]', f);
+
+    if(btn){
+      btn.disabled = true;
+      btn.textContent = 'جاري الإرسال...';
+    }
+
+    try{
+
+      let response = await fetch(
+        'https://datalens.rf.gd/api/contact.php',
+        {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json'
+          },
+          body:JSON.stringify({
+            name:name,
+            email:email,
+            subject:subject,
+            message:message
+          })
+        }
+      );
+
+      let result = await response.json();
+
+      if(result.success){
+
+        f.reset();
+
+        toast(
+          result.message || 'تم إرسال رسالتك بنجاح'
+        );
+
+      }else{
+
+        toast(
+          result.message || 'تعذر إرسال الرسالة'
+        );
+      }
+
+    }catch(error){
+
+      console.error(error);
+
+      toast(
+        'تعذر الاتصال بالخادم'
+      );
+
+    }finally{
+
+      if(btn){
+        btn.disabled = false;
+        btn.textContent = 'إرسال الرسالة';
+      }
+
+    }
+
+  };
+    }
 
 
 /* ============================================================
