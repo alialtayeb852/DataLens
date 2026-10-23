@@ -3700,7 +3700,7 @@ function renderContact(){
       body.append('message', message);
 
       let response = await fetch(
-        'https://datalens.rf.gd/contact.php',
+        'https://datalens.rf.gd/test-contact.php'
         {
           method:'POST',
           mode:'cors',
@@ -3712,6 +3712,12 @@ function renderContact(){
 
       console.log('Contact API response:', text);
 
+      toast(
+  'تم الوصول إلى test-contact.php والرد هو: ' + text
+);
+
+return;
+      
       let result;
 
       try{
