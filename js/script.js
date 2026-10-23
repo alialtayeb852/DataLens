@@ -3750,16 +3750,17 @@ function renderContact(){
 
     }catch(error){
 
-      console.error(
-        'Contact request error:',
-        error
-      );
+  console.error(
+    'Contact request error:',
+    error
+  );
 
-      toast(
-        'تعذر الاتصال بالخادم'
-      );
+  toast(
+    'خطأ الاتصال: ' +
+    (error.message || 'خطأ غير معروف')
+  );
 
-    }finally{
+}finally{
 
       if(btn){
 
