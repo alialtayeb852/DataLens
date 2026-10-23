@@ -3703,15 +3703,32 @@ function renderContact(){
         'https://datalens.rf.gd/api/contact.php',
         {
           method:'POST',
-          headers:{
-            'Content-Type':
-              'application/x-www-form-urlencoded;charset=UTF-8'
-          },
-          body:body.toString()
+          mode:'cors',
+          body:body
         }
       );
 
-      let result = await response.json();
+      let text = await response.text();
+
+      console.log('Contact API response:', text);
+
+      let result;
+
+      try{
+        result = JSON.parse(text);
+      }catch(parseError){
+
+        console.error(
+          'Invalid JSON response:',
+          text
+        );
+
+        toast(
+          'الخادم أرسل استجابة غير مفهومة'
+        );
+
+        return;
+      }
 
       if(result.success){
 
@@ -3719,7 +3736,7 @@ function renderContact(){
 
         toast(
           result.message ||
-          'تم إرسال رسالتك بنجاح'
+          'تم إرسال الرسالة بنجاح'
         );
 
       }else{
@@ -3733,7 +3750,10 @@ function renderContact(){
 
     }catch(error){
 
-      console.error(error);
+      console.error(
+        'Contact request error:',
+        error
+      );
 
       toast(
         'تعذر الاتصال بالخادم'
@@ -3751,7 +3771,7 @@ function renderContact(){
     }
 
   };
-  }
+}
 
 /* ============================================================
    تشغيل النظام
