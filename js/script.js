@@ -3765,6 +3765,7 @@ document.addEventListener(
     uploads();
 
     render();
+    renderContact();
 
   }
 );
