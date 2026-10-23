@@ -3692,19 +3692,22 @@ function renderContact(){
 
     try{
 
+      let body = new URLSearchParams();
+
+      body.append('name', name);
+      body.append('email', email);
+      body.append('subject', subject);
+      body.append('message', message);
+
       let response = await fetch(
         'https://datalens.rf.gd/api/contact.php',
         {
           method:'POST',
           headers:{
-            'Content-Type':'application/json'
+            'Content-Type':
+              'application/x-www-form-urlencoded;charset=UTF-8'
           },
-          body:JSON.stringify({
-            name:name,
-            email:email,
-            subject:subject,
-            message:message
-          })
+          body:body.toString()
         }
       );
 
@@ -3715,14 +3718,17 @@ function renderContact(){
         f.reset();
 
         toast(
-          result.message || 'تم إرسال رسالتك بنجاح'
+          result.message ||
+          'تم إرسال رسالتك بنجاح'
         );
 
       }else{
 
         toast(
-          result.message || 'تعذر إرسال الرسالة'
+          result.message ||
+          'تعذر إرسال الرسالة'
         );
+
       }
 
     }catch(error){
@@ -3736,15 +3742,16 @@ function renderContact(){
     }finally{
 
       if(btn){
+
         btn.disabled = false;
         btn.textContent = 'إرسال الرسالة';
+
       }
 
     }
 
   };
-    }
-
+  }
 
 /* ============================================================
    تشغيل النظام
